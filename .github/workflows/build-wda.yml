@@ -1,0 +1,35 @@
+# 用 GitHub 免费云端 Mac 编译 WebDriverAgent 安装包（适配新 iOS）
+# 用法：在 GitHub 公开仓库的 Actions 页面手动触发，跑完在 Artifacts 里下载 WebDriverAgent.ipa
+name: build-wda
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: 拉取官方 WDA 源码
+        uses: actions/checkout@v4
+        with:
+          repository: appium/WebDriverAgent
+
+      - name: 编译（不签名）
+        run: |
+          xcodebuild -project WebDriverAgent.xcodeproj \
+            -scheme WebDriverAgentRunner \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+
+      - name: 打包成 ipa
+        run: |
+          mkdir Payload
+          cp -r build/Build/Products/Release-iphoneos/WebDriverAgentRunner-Runner.app Payload/
+          zip -qry WebDriverAgent.ipa Payload
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: WebDriverAgent-ipa
+          path: WebDriverAgent.ipa
